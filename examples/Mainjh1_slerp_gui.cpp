@@ -65,9 +65,9 @@ void sendCurrentPoseToGUI() {
 
     // 2. Tool offset
     Matrix4d T_offset = Matrix4d::Identity();
-    T_offset(0, 3) = 112.0;
-    T_offset(1, 3) = -147.0;
-    T_offset(2, 3) = -100.0;
+    T_offset(0, 3) = 0;  // y異뺤쑝濡� -110mm �대룞
+    T_offset(1, 3) = -134.5;  // y異뺤쑝濡� -110mm �대룞
+    T_offset(2, 3) = -134.5; 
 
     // 3. 보정된 최종 T 계산
     Matrix4d T_tool = T_base2tcp * T_offset;
@@ -701,7 +701,7 @@ void executeStaticMove(
         robot.move_servo_j(rc,
             { q_deg[0],q_deg[1],q_deg[2],
              q_deg[3],q_deg[4],q_deg[5] },
-            0.01, 0.05, 100.0, alpha
+            0.05, 0.05, 1.0, 0.05
         );
 
         // 5.6) 100 Hz 유지

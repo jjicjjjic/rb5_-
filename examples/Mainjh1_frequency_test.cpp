@@ -707,7 +707,7 @@ void executeStaticMove(
         robot.move_servo_j(rc,
             { q_deg[0],q_deg[1],q_deg[2],
              q_deg[3],q_deg[4],q_deg[5] },
-            0.01, 0.05, 100.0, alpha
+            0.03, 0.05, 100.0, alpha
         );
 
         // 기존 내용 아래에 시간 측정 추가

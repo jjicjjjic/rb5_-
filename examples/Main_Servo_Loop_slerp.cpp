@@ -45,6 +45,9 @@ std::mutex quat_mutex;
 Quaterniond q_start, q_target;
 std::chrono::steady_clock::time_point slerp_start_time;
 std::atomic<bool> is_rotating{false};
+podo::ResponseCollector rc;
+podo::Cobot robot("10.0.2.7");
+std::array<double, 6> pnt{};
 
 std::atomic<bool> control_ready{false};
 constexpr double DEG2RAD = M_PI / 180.0;
@@ -99,21 +102,21 @@ void tcpReceiveThread() {
         recv_buf.append(buffer, len);
 
         try {
-            json j = json::parse(recv_buf);
+            robot.get_tcp_info(rc, pnt);
 
-            if (j.contains("control")) {
-                std::cout << "[RECV] Control message only: " << j.dump() << std::endl;
-                recv_buf.clear();
-                continue;
-            }
-
-            std::cout << "[RECV] Raw JSON: " << recv_buf << std::endl;
-            Vector3d pos(j["position"][0], j["position"][1], j["position"][2]);
-            Vector3d rpy(
-                deg2rad(j["rpy"]["roll"]),
-                deg2rad(j["rpy"]["pitch"]),
-                deg2rad(j["rpy"]["yaw"])
+            Vector3d pos_raw(pnt[0], pnt[1], pnt[2]);
+            Vector3d rpy_raw = Vector3d(
+                deg2rad(pnt[3]), deg2rad(pnt[4]), deg2rad(pnt[5])
             );
+            json j = json::parse(recv_buf);
+            recv_buf.clear();  // 성공했으면 버퍼 비우기
+
+            // 🔹 입력값 추출
+            double x = j["x"].get<double>()+pnt[0], y = j["y"].get<double>()+pnt[1], z = j["z"].get<double>()+pnt[2];
+            double roll = j["roll"], pitch = j["pitch"], yaw = j["yaw"];
+
+            Vector3d pos(x, y, z);
+            Vector3d rpy(deg2rad(roll), deg2rad(pitch), deg2rad(yaw));
 
             {
                 std::lock_guard<std::mutex> lock(data_mutex);
@@ -121,39 +124,33 @@ void tcpReceiveThread() {
                 g_target_pos = pos;
                 std::cout << "[UPDATE] g_target_pos = " << g_target_pos.transpose() << std::endl;
 
-                // ✅ RPY 값이 이전과 다를 때만 slerp 갱신
-                if (j.contains("trigger_rpy") && j["trigger_rpy"] == true) {
-                    if (!g_target_rpy.isApprox(rpy, 1e-3)) {
-                        std::cout << "[RECV] Parsed NEW RPY: "
-                            << j["rpy"]["roll"] << ", "
-                            << j["rpy"]["pitch"] << ", "
-                            << j["rpy"]["yaw"] << std::endl;
+                // 🔹 RPY가 바뀐 경우에만 SLERP 진행
+                if (!g_target_rpy.isApprox(rpy, 1e-3)) {
+                    std::cout << "[RECV] New RPY: " << roll << ", " << pitch << ", " << yaw << std::endl;
 
-                        {
-                            std::lock_guard<std::mutex> qlock(quat_mutex);
-                            q_start = rpy2quat(g_target_rpy);   // 이전 목표 자세
-                            q_target = rpy2quat(rpy);           // 새 목표 자세
-                            slerp_start_time = std::chrono::steady_clock::now();
-                            is_rotating.store(true);
-                        }
+                    {
+                        std::lock_guard<std::mutex> qlock(quat_mutex);
+                        q_start = rpy2quat(g_target_rpy);
+                        q_target = rpy2quat(rpy);
+                        slerp_start_time = std::chrono::steady_clock::now();
+                        is_rotating.store(true);
+                    }
 
-                        g_target_rpy = rpy;
-                        std::cout << "[UPDATE] g_target_rpy (rad) = " << g_target_rpy.transpose() << std::endl;
-                    }
-                    else {
-                        std::cout << "[SKIP] RPY unchanged, skipping slerp update.\n";
-                    }
+                    g_target_rpy = rpy;
+                    std::cout << "[UPDATE] g_target_rpy (rad) = " << g_target_rpy.transpose() << std::endl;
                 }
-                control_ready.store(true);  // 루프 시작 신호
             }
 
-            recv_buf.clear();
+            control_ready.store(true);
         }
-        catch (...) {
-            std::cerr << "[ERROR] Failed to parse JSON or process data.\n";
-            recv_buf.clear();
+        catch (const std::exception& e) {
+            std::cerr << "[ERROR] JSON parse error: " << e.what() << "\n";
+            recv_buf.clear();  // 실패해도 버퍼 비우기 (단순화 위해)
         }
     }
+
+    close(client_fd);
+    close(server_fd);
 }
 
 
