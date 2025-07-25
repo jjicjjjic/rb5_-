@@ -666,10 +666,23 @@ void executeStaticMove(
         if (start_q.dot(q2) < 0) q2.coeffs() = -q2.coeffs();
         wp_q[i - 1] = start_q.slerp(s, q2);  // ← 바뀐 부분
     }
-    
+
+    using clock = std::chrono::steady_clock;
+    auto loop_start_time = clock::now();  // 기준 시간
     
     // 5) Waypoint 순회
     for (int i = 0; i < N; ++i) {
+
+
+        static int loop_count = 0;
+        static double total_time_ms = 0.0;
+
+        static int loop_cnt = 0;
+        static double total_ms = 0.0;
+
+        auto t_start = std::chrono::high_resolution_clock::now();
+        auto t_s = std::chrono::high_resolution_clock::now();
+
         // 5.1) IK
         Vector3d rpy = quaternionToRPY(wp_q[i]);
         std::cout << "[DEBUG] WP[" << i << "] pos=" << wp_pos[i].transpose()
@@ -704,12 +717,35 @@ void executeStaticMove(
             0.05, 0.05, 1.0, 0.05
         );
 
-        // 5.6) 100 Hz 유지
-        std::this_thread::sleep_for(10ms);
+        // 기존 내용 아래에 시간 측정 추가
+        auto t_end = std::chrono::high_resolution_clock::now();
+        double elapsed_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
+        auto t_e = std::chrono::high_resolution_clock::now();
+        double el_ms = std::chrono::duration<double, std::milli>(t_e - t_s).count();
+
+        total_time_ms += elapsed_ms;
+        loop_count++;
+
+        std::cout << "[LOOP TIMING] Iter " << loop_count
+            << ": " << elapsed_ms << " ms, "
+            << "Avg = " << total_time_ms / loop_count << " ms\n";
+
+        loop_start_time += std::chrono::milliseconds(10);
+        std::this_thread::sleep_until(loop_start_time);
+
+        total_ms += el_ms;
+        loop_cnt++;
+
+        std::cout << "[LOOP TIMING] Iter " << loop_cnt
+            << ": " << el_ms << " ms, "
+            << "Avg = " << total_ms / loop_cnt << " ms\n";
+
 
         // 5.7) 상태 갱신
         q_current = q_next;
     }
+
+
 }
 
 int main() {
