@@ -531,7 +531,7 @@ void executeStaticMove(
         robot.move_servo_j(rc,
             { q_deg[0],q_deg[1],q_deg[2],
              q_deg[3],q_deg[4],q_deg[5] },
-            0.01, 0.05, 1, alpha
+            0.01, 0.05, 1, 0.05
         );
 
         // 5.6) 100 Hz 유지

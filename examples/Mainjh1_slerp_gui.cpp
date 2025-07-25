@@ -695,6 +695,25 @@ void executeStaticMove(
             wp_pos[i], rpy, q_current, 50, 1e-3
         );
 
+        // std::cout << "target joint angle: ";
+        // for (int i = 0; i < 6; ++i) {
+        //     std::cout << q_next[i] << " ";
+        // }
+        // std::cout << std::endl;
+
+        // double out;
+        // for (int i = 0; i < 6; ++i) {
+        //     robot.get_system_variable(rc,
+        //         static_cast<podo::SystemVariable>(static_cast<int>(podo::SystemVariable::SD_J0_REF) + i), out);
+        //     q_current[i] = out * DEG2RAD;
+        // }
+
+        // std::cout << "current joint angle: ";
+        // for (int i = 0; i < 6; ++i) {
+        //     std::cout << q_current[i] << " ";
+        // }
+        // std::cout << std::endl;
+
         // 5.2) Progress 계산 (0→1)
         Vector3d cur_tcp = rm.forwardKinematics(q_next)
             .block<3, 1>(0, 3);
@@ -714,31 +733,31 @@ void executeStaticMove(
         robot.move_servo_j(rc,
             { q_deg[0],q_deg[1],q_deg[2],
              q_deg[3],q_deg[4],q_deg[5] },
-            0.05, 0.05, 1.0, 0.05
+            0.01, 0.2, 1.0, 0.05
         );
 
-        // 기존 내용 아래에 시간 측정 추가
-        auto t_end = std::chrono::high_resolution_clock::now();
-        double elapsed_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
-        auto t_e = std::chrono::high_resolution_clock::now();
-        double el_ms = std::chrono::duration<double, std::milli>(t_e - t_s).count();
+        // // 기존 내용 아래에 시간 측정 추가
+        // auto t_end = std::chrono::high_resolution_clock::now();
+        // double elapsed_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
+        // auto t_e = std::chrono::high_resolution_clock::now();
+        // double el_ms = std::chrono::duration<double, std::milli>(t_e - t_s).count();
 
-        total_time_ms += elapsed_ms;
-        loop_count++;
+        // total_time_ms += elapsed_ms;
+        // loop_count++;
 
-        std::cout << "[LOOP TIMING] Iter " << loop_count
-            << ": " << elapsed_ms << " ms, "
-            << "Avg = " << total_time_ms / loop_count << " ms\n";
+        // std::cout << "[LOOP TIMING] Iter " << loop_count
+        //     << ": " << elapsed_ms << " ms, "
+        //     << "Avg = " << total_time_ms / loop_count << " ms\n";
 
-        loop_start_time += std::chrono::milliseconds(10);
-        std::this_thread::sleep_until(loop_start_time);
+        // loop_start_time += std::chrono::milliseconds(10);
+        // std::this_thread::sleep_until(loop_start_time);
 
-        total_ms += el_ms;
-        loop_cnt++;
+        // total_ms += el_ms;
+        // loop_cnt++;
 
-        std::cout << "[TOTAL TIMING] Iter " << loop_cnt
-            << ": " << el_ms << " ms, "
-            << "TOTAL Avg = " << total_ms / loop_cnt << " ms\n";
+        // std::cout << "[TOTAL TIMING] Iter " << loop_cnt
+        //     << ": " << el_ms << " ms, "
+        //     << "TOTAL Avg = " << total_ms / loop_cnt << " ms\n";
 
 
         // 5.7) 상태 갱신
@@ -760,8 +779,8 @@ int main() {
         // Vector3d last_target_rpy = Vector3d::Zero();
 
 
-        robot.set_operation_mode(rc, podo::OperationMode::Real);
-        //robot.set_operation_mode(rc, podo::OperationMode::Simulation);
+        //robot.set_operation_mode(rc, podo::OperationMode::Real);
+        robot.set_operation_mode(rc, podo::OperationMode::Simulation);
         robot.set_speed_bar(rc, 1);
         rc.error().throw_if_not_empty();
 
