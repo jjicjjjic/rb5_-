@@ -736,9 +736,9 @@ void executeStaticMove(
         total_ms += el_ms;
         loop_cnt++;
 
-        std::cout << "[LOOP TIMING] Iter " << loop_cnt
+        std::cout << "[TOTAL TIMING] Iter " << loop_cnt
             << ": " << el_ms << " ms, "
-            << "Avg = " << total_ms / loop_cnt << " ms\n";
+            << "TOTAL Avg = " << total_ms / loop_cnt << " ms\n";
 
 
         // 5.7) 상태 갱신
